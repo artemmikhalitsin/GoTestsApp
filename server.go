@@ -6,29 +6,15 @@ import (
 	"strings"
 )
 
+// PlayerStore stores score information about players
 type PlayerStore interface {
 	GetPlayerScore(player string) int
 	RecordWin(player string)
 }
 
+// PlayerServer is a HTTP interface for player information
 type PlayerServer struct {
 	store PlayerStore
-}
-
-type InMemoryPlayerStore struct {
-	store map[string]int
-}
-
-func NewInMemoryPlayerStore() *InMemoryPlayerStore {
-	return &InMemoryPlayerStore{map[string]int{}}
-}
-
-func (i *InMemoryPlayerStore) GetPlayerScore(player string) int {
-	return i.store[player]
-}
-
-func (i *InMemoryPlayerStore) RecordWin(player string) {
-	i.store[player]++
 }
 
 func (p *PlayerServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
