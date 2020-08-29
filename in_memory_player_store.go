@@ -29,3 +29,14 @@ func (i *InMemoryPlayerStore) RecordWin(player string) {
 	defer i.mu.Unlock()
 	i.store[player]++
 }
+
+// GetLeague retrieves the players currently in the league
+func (i *InMemoryPlayerStore) GetLeague() []Player {
+	var league []Player
+
+	for name, wins := range i.store {
+		league = append(league, Player{name, wins})
+	}
+
+	return league
+}
