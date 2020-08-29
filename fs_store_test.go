@@ -1,18 +1,21 @@
 package main
 
 import (
-	"strings"
+	"io"
+	"io/ioutil"
+	"os"
 	"testing"
 )
 
 func TestFSStore(t *testing.T) {
 	t.Run("/league from a reader", func(t *testing.T) {
-		database := strings.NewReader(`[
+
+		database, cleanDatabase := createTempFile(t, `[
         {"Name": "Cleo", "Wins": 35},
         {"Name": "Roger", "Wins": 10}
       ]`)
-
-		store := FileSystemPlayerStore{database}
+		defer cleanDatabase()
+		store := &FileSystemPlayerStore{database}
 
 		got := store.GetLeague()
 		want := []Player{
@@ -28,19 +31,57 @@ func TestFSStore(t *testing.T) {
 	})
 
 	t.Run("Get player score", func(t *testing.T) {
-		database := strings.NewReader(`[
+		database, cleanDatabase := createTempFile(t, `[
         {"Name": "Cleo", "Wins": 35},
         {"Name": "Roger", "Wins": 10}
       ]`)
-		player := "Cleo"
+		defer cleanDatabase()
+		store := &FileSystemPlayerStore{database}
 
-		store := FileSystemPlayerStore{database}
-
-		got := store.GetPlayerScore(player)
-		want := 35
-
-		if got != want {
-			t.Errorf("Expected score %d, got score %d", want, got)
-		}
+		assertScoreEquals(t, store.GetPlayerScore("Cleo"), 35)
 	})
+
+	t.Run("Records a win", func(t *testing.T) {
+		database, cleanDatabase := createTempFile(t, `[
+        {"Name": "Cleo", "Wins": 35},
+        {"Name": "Roger", "Wins": 10}
+      ]`)
+		defer cleanDatabase()
+		store := &FileSystemPlayerStore{database}
+
+		store.RecordWin("Cleo")
+		store.RecordWin("Cleo")
+		store.RecordWin("Cleo")
+
+		want := 35 + 3
+		got := store.GetPlayerScore("Cleo")
+
+		assertScoreEquals(t, got, want)
+	})
+}
+
+func assertScoreEquals(t *testing.T, got, want int) {
+	t.Helper()
+	if got != want {
+		t.Errorf("Expected score %d, got score %d", want, got)
+	}
+}
+
+func createTempFile(t *testing.T, initialData string) (io.ReadWriteSeeker, func()) {
+	t.Helper()
+
+	tmpfile, err := ioutil.TempFile("", "db")
+
+	if err != nil {
+		t.Errorf("Error creating a temporary file: %v", err)
+	}
+
+	tmpfile.Write([]byte(initialData))
+
+	removeFile := func() {
+		tmpfile.Close()
+		os.Remove(tmpfile.Name())
+	}
+
+	return tmpfile, removeFile
 }
