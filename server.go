@@ -11,6 +11,7 @@ import (
 type PlayerStore interface {
 	GetPlayerScore(player string) int
 	RecordWin(player string)
+	GetLeague() []Player
 }
 
 // PlayerServer is a HTTP interface for player information
@@ -34,13 +35,15 @@ func NewPlayerServer(store PlayerStore) *PlayerServer {
 }
 
 func (p *PlayerServer) leagueHandler(w http.ResponseWriter, r *http.Request) {
-	leagueTable := []Player{
-		{"Chris", 20},
-	}
+	leagueTable := p.getLeagueTable()
 
 	json.NewEncoder(w).Encode(leagueTable)
 
 	w.WriteHeader(http.StatusOK)
+}
+
+func (p *PlayerServer) getLeagueTable() []Player {
+	return p.store.GetLeague()
 }
 
 func (p *PlayerServer) playersHandler(w http.ResponseWriter, r *http.Request) {
