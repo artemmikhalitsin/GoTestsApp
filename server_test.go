@@ -155,6 +155,13 @@ func assertContentType(t *testing.T, got, want string) {
 	}
 }
 
+func assertNoError(t *testing.T, err error) {
+	t.Helper()
+	if err != nil {
+		t.Fatalf("didn't expect an error but got one: %v", err)
+	}
+}
+
 func getLeagueFromResponse(t *testing.T, body io.Reader) (league League) {
 	t.Helper()
 	league, _ = NewLeague(body)

@@ -14,7 +14,9 @@ func TestFSStore(t *testing.T) {
         {"Name": "Roger", "Wins": 10}
       ]`)
 		defer cleanDatabase()
-		store := NewFileSystemPlayerStore(database)
+		store, err := NewFileSystemPlayerStore(database)
+
+		assertNoError(t, err)
 
 		got := store.GetLeague()
 		want := League{
@@ -35,8 +37,9 @@ func TestFSStore(t *testing.T) {
         {"Name": "Roger", "Wins": 10}
       ]`)
 		defer cleanDatabase()
-		store := NewFileSystemPlayerStore(database)
+		store, err := NewFileSystemPlayerStore(database)
 
+		assertNoError(t, err)
 		assertScoreEquals(t, store.GetPlayerScore("Cleo"), 35)
 	})
 
@@ -46,7 +49,9 @@ func TestFSStore(t *testing.T) {
         {"Name": "Roger", "Wins": 10}
       ]`)
 		defer cleanDatabase()
-		store := NewFileSystemPlayerStore(database)
+		store, err := NewFileSystemPlayerStore(database)
+
+		assertNoError(t, err)
 
 		store.RecordWin("Cleo")
 		store.RecordWin("Cleo")
@@ -66,7 +71,9 @@ func TestFSStore(t *testing.T) {
 		defer cleanDatabase()
 
 		newPlayer := "Junior"
-		store := NewFileSystemPlayerStore(database)
+		store, err := NewFileSystemPlayerStore(database)
+
+		assertNoError(t, err)
 
 		store.RecordWin(newPlayer)
 
@@ -74,6 +81,15 @@ func TestFSStore(t *testing.T) {
 		got := store.GetPlayerScore(newPlayer)
 
 		assertScoreEquals(t, got, want)
+	})
+
+	t.Run("Works with an empty file", func(t *testing.T) {
+		database, cleanDatabase := createTempFile(t, "")
+		defer cleanDatabase()
+
+		_, err := NewFileSystemPlayerStore(database)
+
+		assertNoError(t, err)
 	})
 }
 
