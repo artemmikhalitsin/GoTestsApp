@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"sort"
 )
 
 // FileSystemPlayerStore stores leauge results in the file system
@@ -33,6 +34,9 @@ func NewFileSystemPlayerStore(file *os.File) (*FileSystemPlayerStore, error) {
 
 // GetLeague retrieves the league scores
 func (f *FileSystemPlayerStore) GetLeague() League {
+	sort.Slice(f.league, func(i int, j int) bool {
+		return f.league[i].Wins > f.league[j].Wins
+	})
 	return f.league
 }
 

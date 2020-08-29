@@ -7,11 +7,12 @@ import (
 )
 
 func TestFSStore(t *testing.T) {
-	t.Run("/league from a reader", func(t *testing.T) {
+	t.Run("/league from a reader is in order from highest score to lowest", func(t *testing.T) {
 
 		database, cleanDatabase := createTempFile(t, `[
-        {"Name": "Cleo", "Wins": 35},
-        {"Name": "Roger", "Wins": 10}
+        {"Name": "Cleo", "Wins": 10},
+        {"Name": "Roger", "Wins": 35},
+				{"Name": "Cedar", "Wins": 22}
       ]`)
 		defer cleanDatabase()
 		store, err := NewFileSystemPlayerStore(database)
@@ -19,9 +20,11 @@ func TestFSStore(t *testing.T) {
 		assertNoError(t, err)
 
 		got := store.GetLeague()
+		// ordered from highest score to lowest
 		want := League{
-			{"Cleo", 35},
-			{"Roger", 10},
+			{"Roger", 35},
+			{"Cedar", 22},
+			{"Cleo", 10},
 		}
 
 		assertLeague(t, got, want)
