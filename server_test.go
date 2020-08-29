@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -141,6 +140,7 @@ func assertStatusCode(t *testing.T, got, want int) {
 }
 
 func assertLeague(t *testing.T, got, wantedLeague []Player) {
+	t.Helper()
 	if !reflect.DeepEqual(got, wantedLeague) {
 		t.Errorf("Got %v, wanted %v", got, wantedLeague)
 	}
@@ -149,6 +149,7 @@ func assertLeague(t *testing.T, got, wantedLeague []Player) {
 const jsonContentType = "application/json"
 
 func assertContentType(t *testing.T, got, want string) {
+	t.Helper()
 	if got != want {
 		t.Errorf("response did not have content-type of %v, got %v", want, got)
 	}
@@ -156,11 +157,7 @@ func assertContentType(t *testing.T, got, want string) {
 
 func getLeagueFromResponse(t *testing.T, body io.Reader) (league []Player) {
 	t.Helper()
-	err := json.NewDecoder(body).Decode(&league)
-
-	if err != nil {
-		t.Fatalf("Unable to parse response from server %q into slice of Player", body)
-	}
+	league, _ = NewLeague(body)
 
 	return
 }
