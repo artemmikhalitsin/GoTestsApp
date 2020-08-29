@@ -32,5 +32,11 @@ func (i *InMemoryPlayerStore) RecordWin(player string) {
 
 // GetLeague retrieves the players currently in the league
 func (i *InMemoryPlayerStore) GetLeague() []Player {
-	return []Player{}
+	var league []Player
+
+	for name, wins := range i.store {
+		league = append(league, Player{name, wins})
+	}
+
+	return league
 }
