@@ -15,7 +15,7 @@ func TestFSStore(t *testing.T) {
         {"Name": "Roger", "Wins": 10}
       ]`)
 		defer cleanDatabase()
-		store := &FileSystemPlayerStore{database}
+		store := NewFileSystemPlayerStore(database)
 
 		got := store.GetLeague()
 		want := League{
@@ -36,7 +36,7 @@ func TestFSStore(t *testing.T) {
         {"Name": "Roger", "Wins": 10}
       ]`)
 		defer cleanDatabase()
-		store := &FileSystemPlayerStore{database}
+		store := NewFileSystemPlayerStore(database)
 
 		assertScoreEquals(t, store.GetPlayerScore("Cleo"), 35)
 	})
@@ -47,7 +47,7 @@ func TestFSStore(t *testing.T) {
         {"Name": "Roger", "Wins": 10}
       ]`)
 		defer cleanDatabase()
-		store := &FileSystemPlayerStore{database}
+		store := NewFileSystemPlayerStore(database)
 
 		store.RecordWin("Cleo")
 		store.RecordWin("Cleo")
@@ -67,7 +67,7 @@ func TestFSStore(t *testing.T) {
 		defer cleanDatabase()
 
 		newPlayer := "Junior"
-		store := &FileSystemPlayerStore{database}
+		store := NewFileSystemPlayerStore(database)
 
 		store.RecordWin(newPlayer)
 
