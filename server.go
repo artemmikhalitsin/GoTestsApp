@@ -20,6 +20,13 @@ type PlayerServer struct {
 	http.Handler
 }
 
+// Player stores info about a player like name and number of wins
+type Player struct {
+	Name string
+	Wins int
+}
+
+// NewPlayerServer sets up a new PlayerServer with configured routing
 func NewPlayerServer(store PlayerStore) *PlayerServer {
 	p := new(PlayerServer)
 
