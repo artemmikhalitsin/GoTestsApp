@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"io"
 )
 
@@ -10,7 +11,7 @@ type FileSystemPlayerStore struct {
 }
 
 // GetLeague retrieves the league scores
-func (f *FileSystemPlayerStore) GetLeague() []Player {
+func (f *FileSystemPlayerStore) GetLeague() League {
 	f.database.Seek(0, 0)
 	league, _ := NewLeague(f.database)
 	return league
@@ -18,11 +19,23 @@ func (f *FileSystemPlayerStore) GetLeague() []Player {
 
 // GetPlayerScore retrieves a player's score
 func (f *FileSystemPlayerStore) GetPlayerScore(name string) (wins int) {
-	for _, player := range f.GetLeague() {
-		if player.Name == name {
-			wins = player.Wins
-			return
-		}
+	league := f.GetLeague()
+	player := league.Find(name)
+
+	if player != nil {
+		return player.Wins
 	}
-	return
+
+	return 0
+}
+
+// RecordWin records a win for a player
+func (f *FileSystemPlayerStore) RecordWin(name string) {
+	league := f.GetLeague()
+
+	player := league.Find(name)
+	player.Wins++
+
+	f.database.Seek(0, 0)
+	json.NewEncoder(f.database).Encode(league)
 }
