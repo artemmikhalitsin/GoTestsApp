@@ -3,7 +3,6 @@ package main
 import (
 	"log"
 	"net/http"
-	"os"
 
 	poker "github.com/artemmikhalitsin/GoTestsApp"
 )
@@ -11,17 +10,13 @@ import (
 const dbFileName = "game.db.json"
 
 func main() {
-	db, err := os.OpenFile(dbFileName, os.O_RDWR|os.O_CREATE, 0666)
 
-	if err != nil {
-		log.Fatalf("Problem opening %s: %v", dbFileName, err)
-	}
-
-	store, err := poker.NewFileSystemPlayerStore(db)
+	store, close, err := poker.FileSystemPlayerStoreFromFile(dbFileName)
 
 	if err != nil {
 		log.Fatalf("problem creating filesystem store: %v", err)
 	}
+	defer close()
 
 	scoreServer := poker.NewPlayerServer(store)
 

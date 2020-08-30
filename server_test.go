@@ -15,7 +15,7 @@ func TestGETPlayers(t *testing.T) {
 			"Pepper": 20,
 			"Floyd":  10,
 		},
-		winCalls: []string{},
+		WinCalls: []string{},
 	}
 
 	server := NewPlayerServer(&store)
@@ -61,7 +61,7 @@ func TestGETPlayers(t *testing.T) {
 func TestStoreWins(t *testing.T) {
 	store := StubPlayerStore{
 		scores:   map[string]int{},
-		winCalls: []string{},
+		WinCalls: []string{},
 	}
 	server := NewPlayerServer(&store)
 
@@ -74,13 +74,11 @@ func TestStoreWins(t *testing.T) {
 
 		assertStatusCode(t, response.Code, http.StatusAccepted)
 
-		if len(store.winCalls) != 1 {
-			t.Errorf("got %d calls to RecordWin want %d", len(store.winCalls), 1)
+		if len(store.WinCalls) != 1 {
+			t.Errorf("got %d calls to RecordWin want %d", len(store.WinCalls), 1)
 		}
 
-		if store.winCalls[0] != name {
-			t.Errorf("did not store correct winner got %q want %q", store.winCalls[0], name)
-		}
+		assertPlayerWin(t, store.WinCalls[0], name)
 	})
 }
 
@@ -162,28 +160,15 @@ func assertNoError(t *testing.T, err error) {
 	}
 }
 
+func assertPlayerWin(t *testing.T, got, want string) {
+	if got != want {
+		t.Fatalf("Expected to have winner %q, but got %q", want, got)
+	}
+}
+
 func getLeagueFromResponse(t *testing.T, body io.Reader) (league League) {
 	t.Helper()
 	league, _ = NewLeague(body)
 
 	return
-}
-
-type StubPlayerStore struct {
-	scores   map[string]int
-	winCalls []string
-	league   League
-}
-
-func (s *StubPlayerStore) GetPlayerScore(player string) int {
-	score := s.scores[player]
-	return score
-}
-
-func (s *StubPlayerStore) RecordWin(player string) {
-	s.winCalls = append(s.winCalls, player)
-}
-
-func (s *StubPlayerStore) GetLeague() League {
-	return s.league
 }
