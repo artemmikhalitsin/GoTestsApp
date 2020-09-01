@@ -19,8 +19,9 @@ func TestCLI(t *testing.T) {
 	t.Run("Records chris win from cli", func(t *testing.T) {
 		in := strings.NewReader("7\nChris wins")
 		playerStore := &poker.StubPlayerStore{}
+		game := poker.NewGame(playerStore, dummyBlindAlerter)
 
-		cli := poker.NewCLI(playerStore, in, dummyStdOut, dummyBlindAlerter)
+		cli := poker.NewCLI(in, dummyStdOut, game)
 		cli.PlayPoker()
 
 		want := "Chris"
@@ -31,8 +32,9 @@ func TestCLI(t *testing.T) {
 	t.Run("Records cleo win from cli", func(t *testing.T) {
 		in := strings.NewReader("7\nCleo wins")
 		playerStore := &poker.StubPlayerStore{}
+		game := poker.NewGame(playerStore, dummyBlindAlerter)
 
-		cli := poker.NewCLI(playerStore, in, dummyStdOut, dummyBlindAlerter)
+		cli := poker.NewCLI(in, dummyStdOut, game)
 		cli.PlayPoker()
 
 		want := "Cleo"
@@ -44,8 +46,9 @@ func TestCLI(t *testing.T) {
 		in := strings.NewReader("5\nChris wins\n")
 		playerStore := &poker.StubPlayerStore{}
 		blindAlerter := &SpyBlindAlerter{}
+		game := poker.NewGame(playerStore, blindAlerter)
 
-		cli := poker.NewCLI(playerStore, in, dummyStdOut, blindAlerter)
+		cli := poker.NewCLI(in, dummyStdOut, game)
 		cli.PlayPoker()
 
 		cases := []scheduledAlert{
@@ -75,7 +78,8 @@ func TestCLI(t *testing.T) {
 
 	t.Run("It prompts for the number of players", func(t *testing.T) {
 		stdout := &bytes.Buffer{}
-		cli := poker.NewCLI(dummyPlayerStore, dummyStdIn, stdout, dummyBlindAlerter)
+		game := poker.NewGame(dummyPlayerStore, dummyBlindAlerter)
+		cli := poker.NewCLI(dummyStdIn, stdout, game)
 		cli.PlayPoker()
 
 		assertPrompt(t, stdout.String(), poker.PlayerPrompt)
@@ -84,7 +88,8 @@ func TestCLI(t *testing.T) {
 	t.Run("It provides correct blinds given a number of players", func(t *testing.T) {
 		in := strings.NewReader("7\n")
 		blindAlerter := &SpyBlindAlerter{}
-		cli := poker.NewCLI(dummyPlayerStore, in, dummyStdOut, blindAlerter)
+		game := poker.NewGame(dummyPlayerStore, blindAlerter)
+		cli := poker.NewCLI(in, dummyStdOut, game)
 		cli.PlayPoker()
 
 		cases := []scheduledAlert{
