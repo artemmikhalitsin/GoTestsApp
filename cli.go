@@ -13,12 +13,14 @@ const PlayerPrompt = "Please enter the number of players: "
 const BadInputErrMessage = "Can't understand input"
 const BadWinnerInputErrMessage = "Winner message doesn't look right"
 
+// CLI is the command-line program to run a poker game
 type CLI struct {
 	in   *bufio.Scanner
 	out  io.Writer
 	game Game
 }
 
+// NewCLI creates a new CLI object given input source, output destination and a game to control
 func NewCLI(in io.Reader, out io.Writer, game Game) *CLI {
 	return &CLI{
 		in:   bufio.NewScanner(in),
@@ -27,6 +29,7 @@ func NewCLI(in io.Reader, out io.Writer, game Game) *CLI {
 	}
 }
 
+// PlayPoker starts interaction with the user to run the poker game
 func (cli *CLI) PlayPoker() {
 	fmt.Fprintf(cli.out, PlayerPrompt)
 
