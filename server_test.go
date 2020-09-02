@@ -22,7 +22,7 @@ func TestGETPlayers(t *testing.T) {
 		WinCalls: []string{},
 	}
 
-	server := NewPlayerServer(&store)
+	server, _ := NewPlayerServer(&store)
 
 	tests := []struct {
 		name               string
@@ -67,7 +67,7 @@ func TestStoreWins(t *testing.T) {
 		scores:   map[string]int{},
 		WinCalls: []string{},
 	}
-	server := NewPlayerServer(&store)
+	server, _ := NewPlayerServer(&store)
 
 	t.Run("it returns accepted on POST", func(t *testing.T) {
 		name := "Pepper"
@@ -95,7 +95,7 @@ func TestLeague(t *testing.T) {
 		}
 
 		store := &StubPlayerStore{league: wantedLeague}
-		server := NewPlayerServer(store)
+		server := makePlayerServer(t, store)
 
 		request := newLeagueRequest()
 		response := httptest.NewRecorder()
@@ -115,7 +115,7 @@ func TestLeague(t *testing.T) {
 func TestGame(t *testing.T) {
 	t.Run("GET /game returns 200", func(t *testing.T) {
 		store := &StubPlayerStore{}
-		server := NewPlayerServer(store)
+		server := makePlayerServer(t, store)
 
 		request := newGameRequest()
 		response := httptest.NewRecorder()
@@ -128,20 +128,16 @@ func TestGame(t *testing.T) {
 	t.Run("when we get a message over a websocket, it's the winner", func(t *testing.T) {
 		winner := "Wario"
 		store := &StubPlayerStore{}
-		server := httptest.NewServer(NewPlayerServer(store))
+		gameServer := makePlayerServer(t, store)
+		server := httptest.NewServer(gameServer)
 		defer server.Close()
 
 		wsURL := "ws" + strings.TrimPrefix(server.URL, "http") + "/ws"
 
-		ws, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
-		if err != nil {
-			t.Fatalf("Unable to open the websocket at %s: %v", wsURL, err)
-		}
+		ws := dialWS(t, wsURL)
 		defer ws.Close()
 
-		if err := ws.WriteMessage(websocket.TextMessage, []byte(winner)); err != nil {
-			t.Fatalf("Error writing to ws connection: %v", err)
-		}
+		writeWSMessage(t, ws, winner)
 
 		time.Sleep(10 * time.Millisecond)
 		AssertPlayerWin(t, store, winner)
@@ -216,4 +212,28 @@ func getLeagueFromResponse(t *testing.T, body io.Reader) (league League) {
 	league, _ = NewLeague(body)
 
 	return
+}
+
+func makePlayerServer(t *testing.T, store PlayerStore) *PlayerServer {
+	server, err := NewPlayerServer(store)
+	if err != nil {
+		t.Errorf("Error creating player server: %v", err)
+	}
+	return server
+}
+
+func dialWS(t *testing.T, wsURL string) *websocket.Conn {
+	ws, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
+	if err != nil {
+		t.Fatalf("Unable to open the websocket at %s: %v", wsURL, err)
+	}
+
+	return ws
+}
+
+func writeWSMessage(t *testing.T, ws *websocket.Conn, message string) {
+	t.Helper()
+	if err := ws.WriteMessage(websocket.TextMessage, []byte(message)); err != nil {
+		t.Fatalf("Unable to write message %s over the ws connection: %v", message, err)
+	}
 }
