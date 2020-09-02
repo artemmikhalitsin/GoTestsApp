@@ -2,10 +2,9 @@ package poker_test
 
 import (
 	"bytes"
-	"fmt"
+	"io"
 	"strings"
 	"testing"
-	"time"
 
 	poker "github.com/artemmikhalitsin/GoTestsApp"
 )
@@ -16,114 +15,61 @@ var dummyStdIn = &bytes.Buffer{}
 var dummyStdOut = &bytes.Buffer{}
 
 func TestCLI(t *testing.T) {
-	t.Run("Records chris win from cli", func(t *testing.T) {
-		in := strings.NewReader("7\nChris wins")
-		playerStore := &poker.StubPlayerStore{}
-		game := poker.NewGame(playerStore, dummyBlindAlerter)
-
-		cli := poker.NewCLI(in, dummyStdOut, game)
-		cli.PlayPoker()
-
-		want := "Chris"
-
-		poker.AssertPlayerWin(t, playerStore, want)
-	})
-
-	t.Run("Records cleo win from cli", func(t *testing.T) {
-		in := strings.NewReader("7\nCleo wins")
-		playerStore := &poker.StubPlayerStore{}
-		game := poker.NewGame(playerStore, dummyBlindAlerter)
-
-		cli := poker.NewCLI(in, dummyStdOut, game)
-		cli.PlayPoker()
-
-		want := "Cleo"
-
-		poker.AssertPlayerWin(t, playerStore, want)
-	})
-
-	t.Run("It schedules printing of blind values", func(t *testing.T) {
-		in := strings.NewReader("5\nChris wins\n")
-		playerStore := &poker.StubPlayerStore{}
-		blindAlerter := &SpyBlindAlerter{}
-		game := poker.NewGame(playerStore, blindAlerter)
-
-		cli := poker.NewCLI(in, dummyStdOut, game)
-		cli.PlayPoker()
-
-		cases := []scheduledAlert{
-			{0 * time.Second, 100},
-			{10 * time.Minute, 200},
-			{20 * time.Minute, 300},
-			{30 * time.Minute, 400},
-			{40 * time.Minute, 500},
-			{50 * time.Minute, 600},
-			{60 * time.Minute, 800},
-			{70 * time.Minute, 1000},
-			{80 * time.Minute, 2000},
-			{90 * time.Minute, 4000},
-			{100 * time.Minute, 8000},
-		}
-
-		for i, c := range cases {
-			t.Run(fmt.Sprintf("%d scheduled for %v", c.amount, c.scheduledAt), func(t *testing.T) {
-				if len(blindAlerter.alerts) <= i {
-					t.Fatalf("alert %d was not scheduled %v", i, blindAlerter.alerts)
-				}
-				alert := blindAlerter.alerts[i]
-				assertScheduledAlert(t, alert, c)
-			})
-		}
-	})
-
-	t.Run("It prompts for the number of players", func(t *testing.T) {
+	t.Run("Start game with 3 players and finish with Mario", func(t *testing.T) {
+		numPlayers := 3
+		winner := "Mario"
+		in := userSends("3", "Mario wins")
 		stdout := &bytes.Buffer{}
-		game := poker.NewGame(dummyPlayerStore, dummyBlindAlerter)
-		cli := poker.NewCLI(dummyStdIn, stdout, game)
+		game := &SpyGame{}
+		cli := poker.NewCLI(in, stdout, game)
 		cli.PlayPoker()
 
-		assertPrompt(t, stdout.String(), poker.PlayerPrompt)
+		assertMessagesSentToUser(t, stdout, poker.PlayerPrompt)
+		assertStartedWith(t, game, numPlayers)
+		assertFinishedWith(t, game, winner)
 	})
 
-	t.Run("It provides correct blinds given a number of players", func(t *testing.T) {
-		in := strings.NewReader("7\n")
-		blindAlerter := &SpyBlindAlerter{}
-		game := poker.NewGame(dummyPlayerStore, blindAlerter)
-		cli := poker.NewCLI(in, dummyStdOut, game)
+	t.Run("It doesn't start the game when given non-numerical input", func(t *testing.T) {
+		stdout := &bytes.Buffer{}
+		stdin := userSends("Wrong Input")
+		game := &SpyGame{}
+		cli := poker.NewCLI(stdin, stdout, game)
 		cli.PlayPoker()
 
-		cases := []scheduledAlert{
-			{0 * time.Second, 100},
-			{12 * time.Minute, 200},
-			{24 * time.Minute, 300},
-			{36 * time.Minute, 400},
-		}
+		assertGameNotStarted(t, game)
+		assertMessagesSentToUser(t, stdout, poker.PlayerPrompt, poker.BadInputErrMessage)
+	})
 
-		for i, want := range cases {
-			t.Run(fmt.Sprint(want), func(t *testing.T) {
-				if len(blindAlerter.alerts) <= i {
-					t.Fatalf("alert %d was not scheduled. %v", i, blindAlerter.alerts)
-				}
+	t.Run("It rejects messages that don't contain a win", func(t *testing.T) {
+		stdout := &bytes.Buffer{}
+		stdin := userSends("3", "Gibberish winner message")
+		game := &SpyGame{}
+		cli := poker.NewCLI(stdin, stdout, game)
+		cli.PlayPoker()
 
-				got := blindAlerter.alerts[i]
+		assertMessagesSentToUser(t, stdout, poker.PlayerPrompt, "Winner message doesn't look right")
 
-				assertScheduledAlert(t, got, want)
-			})
+		if game.FinishCalled {
+			t.Errorf("Game finished with %s, but should not have", game.FinishedWith)
 		}
 	})
 }
 
-type SpyBlindAlerter struct {
-	alerts []scheduledAlert
+type SpyGame struct {
+	StartedWith  int
+	StartCalled  bool
+	FinishedWith string
+	FinishCalled bool
 }
 
-type scheduledAlert struct {
-	scheduledAt time.Duration
-	amount      int
+func (s *SpyGame) Start(numPlayers int) {
+	s.StartedWith = numPlayers
+	s.StartCalled = true
 }
 
-func (s *SpyBlindAlerter) ScheduleAlertAt(duration time.Duration, amount int) {
-	s.alerts = append(s.alerts, scheduledAlert{duration, amount})
+func (s *SpyGame) Finish(winner string) {
+	s.FinishedWith = winner
+	s.FinishCalled = true
 }
 
 func assertScheduledAlert(t *testing.T, got, want scheduledAlert) {
@@ -139,7 +85,47 @@ func assertScheduledAlert(t *testing.T, got, want scheduledAlert) {
 }
 
 func assertPrompt(t *testing.T, got, want string) {
+	t.Helper()
 	if got != want {
-		t.Errorf("Did not get correct prompt. Got: %q, wanted: %q", got, poker.PlayerPrompt)
+		t.Errorf("Did not get correct prompt. Got: %q, wanted: %q", got, want)
 	}
+}
+
+func assertMessagesSentToUser(t *testing.T, stdout *bytes.Buffer, messages ...string) {
+	t.Helper()
+	got := stdout.String()
+	want := strings.Join(messages, "")
+
+	if got != want {
+		t.Errorf("Got %q sent to stdout, but expected +%v", got, messages)
+	}
+}
+
+func assertStartedWith(t *testing.T, game *SpyGame, want int) {
+	t.Helper()
+
+	if game.StartedWith != want {
+		t.Errorf("Started the game with %d players, but got %d", game.StartedWith, want)
+	}
+}
+
+func assertFinishedWith(t *testing.T, game *SpyGame, want string) {
+	t.Helper()
+
+	if game.FinishedWith != want {
+		t.Errorf("Got winner %q, but expected %q to win", game.FinishedWith, want)
+	}
+}
+
+func assertGameNotStarted(t *testing.T, game *SpyGame) {
+	t.Helper()
+
+	if game.StartCalled {
+		t.Errorf("Game started but it shouldn't have been")
+	}
+}
+
+func userSends(messages ...string) io.Reader {
+	input := strings.Join(messages, "\n")
+	return strings.NewReader(input)
 }
