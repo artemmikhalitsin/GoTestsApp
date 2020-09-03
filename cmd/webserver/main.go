@@ -12,13 +12,13 @@ const dbFileName = "game.db.json"
 func main() {
 
 	store, close, err := poker.FileSystemPlayerStoreFromFile(dbFileName)
-
+	game := poker.NewTexasHoldem(store, poker.BlindAlerterFunc(poker.Alerter))
 	if err != nil {
 		log.Fatalf("problem creating filesystem store: %v", err)
 	}
 	defer close()
 
-	scoreServer, err := poker.NewPlayerServer(store)
+	scoreServer, err := poker.NewPlayerServer(store, game)
 
 	if err != nil {
 		log.Fatalf("Problem creating score server: %v", err)

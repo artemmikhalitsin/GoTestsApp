@@ -1,9 +1,11 @@
-package poker
+package poker_test
 
 import (
 	"io/ioutil"
 	"os"
 	"testing"
+
+	poker "github.com/artemmikhalitsin/GoTestsApp"
 )
 
 func TestFSStore(t *testing.T) {
@@ -15,13 +17,13 @@ func TestFSStore(t *testing.T) {
 				{"Name": "Cedar", "Wins": 22}
       ]`)
 		defer cleanDatabase()
-		store, err := NewFileSystemPlayerStore(database)
+		store, err := poker.NewFileSystemPlayerStore(database)
 
 		assertNoError(t, err)
 
 		got := store.GetLeague()
 		// ordered from highest score to lowest
-		want := League{
+		want := poker.League{
 			{"Roger", 35},
 			{"Cedar", 22},
 			{"Cleo", 10},
@@ -40,7 +42,7 @@ func TestFSStore(t *testing.T) {
         {"Name": "Roger", "Wins": 10}
       ]`)
 		defer cleanDatabase()
-		store, err := NewFileSystemPlayerStore(database)
+		store, err := poker.NewFileSystemPlayerStore(database)
 
 		assertNoError(t, err)
 		assertScoreEquals(t, store.GetPlayerScore("Cleo"), 35)
@@ -52,7 +54,7 @@ func TestFSStore(t *testing.T) {
         {"Name": "Roger", "Wins": 10}
       ]`)
 		defer cleanDatabase()
-		store, err := NewFileSystemPlayerStore(database)
+		store, err := poker.NewFileSystemPlayerStore(database)
 
 		assertNoError(t, err)
 
@@ -74,7 +76,7 @@ func TestFSStore(t *testing.T) {
 		defer cleanDatabase()
 
 		newPlayer := "Junior"
-		store, err := NewFileSystemPlayerStore(database)
+		store, err := poker.NewFileSystemPlayerStore(database)
 
 		assertNoError(t, err)
 
@@ -90,7 +92,7 @@ func TestFSStore(t *testing.T) {
 		database, cleanDatabase := createTempFile(t, "")
 		defer cleanDatabase()
 
-		_, err := NewFileSystemPlayerStore(database)
+		_, err := poker.NewFileSystemPlayerStore(database)
 
 		assertNoError(t, err)
 	})

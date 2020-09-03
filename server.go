@@ -3,11 +3,11 @@ package poker
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
+	"strconv"
 	"strings"
 	"text/template"
-
-	"github.com/gorilla/websocket"
 )
 
 const htmlTemplatePath = "game.html"
@@ -22,6 +22,7 @@ type PlayerStore interface {
 // PlayerServer is a HTTP interface for player information
 type PlayerServer struct {
 	store PlayerStore
+	game  Game
 	http.Handler
 	template *template.Template
 }
@@ -32,13 +33,8 @@ type Player struct {
 	Wins int
 }
 
-var wsUpgrader = websocket.Upgrader{
-	ReadBufferSize:  1024,
-	WriteBufferSize: 1024,
-}
-
 // NewPlayerServer sets up a new PlayerServer with configured routing
-func NewPlayerServer(store PlayerStore) (*PlayerServer, error) {
+func NewPlayerServer(store PlayerStore, game Game) (*PlayerServer, error) {
 	p := new(PlayerServer)
 
 	tmpl, err := template.ParseFiles(htmlTemplatePath)
@@ -49,6 +45,7 @@ func NewPlayerServer(store PlayerStore) (*PlayerServer, error) {
 
 	p.template = tmpl
 	p.store = store
+	p.game = game
 
 	router := http.NewServeMux()
 	router.Handle("/league", http.HandlerFunc(p.leagueHandler))
@@ -87,9 +84,15 @@ func (p *PlayerServer) gameHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (p *PlayerServer) websocketHandler(w http.ResponseWriter, r *http.Request) {
-	conn, _ := wsUpgrader.Upgrade(w, r, nil)
-	_, winnerMsg, _ := conn.ReadMessage()
-	p.store.RecordWin(string(winnerMsg))
+	ws := newPlayerServerWS(w, r)
+	defer ws.Conn.Close()
+
+	playersMsg := ws.WaitForMsg()
+	numPlayers, _ := strconv.Atoi(string(playersMsg))
+	p.game.Start(numPlayers, ioutil.Discard) // todo: don't discard the blind alerts
+
+	winner := ws.WaitForMsg()
+	p.game.Finish(string(winner))
 }
 
 func (p *PlayerServer) showScore(w http.ResponseWriter, player string) {

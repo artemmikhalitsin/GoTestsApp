@@ -3,13 +3,13 @@ package poker
 import "testing"
 
 type StubPlayerStore struct {
-	scores   map[string]int
+	Scores   map[string]int
 	WinCalls []string
-	league   League
+	League   League
 }
 
 func (s *StubPlayerStore) GetPlayerScore(player string) int {
-	score := s.scores[player]
+	score := s.Scores[player]
 	return score
 }
 
@@ -18,7 +18,7 @@ func (s *StubPlayerStore) RecordWin(player string) {
 }
 
 func (s *StubPlayerStore) GetLeague() League {
-	return s.league
+	return s.League
 }
 
 func AssertPlayerWin(t *testing.T, store *StubPlayerStore, winner string) {

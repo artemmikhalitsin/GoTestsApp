@@ -1,18 +1,20 @@
-package poker
+package poker_test
 
 import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	poker "github.com/artemmikhalitsin/GoTestsApp"
 )
 
 func TestRecordingAndRetrievingWins(t *testing.T) {
 	database, cleanDatabase := createTempFile(t, `[]`)
 	defer cleanDatabase()
-	store, err := NewFileSystemPlayerStore(database)
+	store, err := poker.NewFileSystemPlayerStore(database)
 	assertNoError(t, err)
 
-	server := makePlayerServer(t, store)
+	server := makePlayerServer(t, store, dummyGame)
 	player := "Pepper"
 
 	server.ServeHTTP(httptest.NewRecorder(), newPostWinRequest(player))
@@ -33,7 +35,7 @@ func TestRecordingAndRetrievingWins(t *testing.T) {
 
 		assertStatusCode(t, response.Code, http.StatusOK)
 		got := getLeagueFromResponse(t, response.Body)
-		want := []Player{
+		want := []poker.Player{
 			{"Pepper", 3},
 		}
 		assertLeague(t, got, want)
