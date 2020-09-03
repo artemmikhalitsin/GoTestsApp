@@ -5,6 +5,7 @@ import (
 	"io"
 	"strings"
 	"testing"
+	"time"
 
 	poker "github.com/artemmikhalitsin/GoTestsApp"
 )
@@ -106,7 +107,11 @@ func assertMessagesSentToUser(t *testing.T, stdout *bytes.Buffer, messages ...st
 func assertStartedWith(t *testing.T, game *GameSpy, want int) {
 	t.Helper()
 
-	if game.StartedWith != want {
+	passed := retryUntil(500*time.Millisecond, func() bool {
+		return game.StartedWith == want
+	})
+
+	if !passed {
 		t.Errorf("Started the game with %d players, but got %d", game.StartedWith, want)
 	}
 }
@@ -114,7 +119,11 @@ func assertStartedWith(t *testing.T, game *GameSpy, want int) {
 func assertFinishedWith(t *testing.T, game *GameSpy, want string) {
 	t.Helper()
 
-	if game.FinishedWith != want {
+	passed := retryUntil(500*time.Millisecond, func() bool {
+		return game.FinishedWith == want
+	})
+
+	if !passed {
 		t.Errorf("Got winner %q, but expected %q to win", game.FinishedWith, want)
 	}
 }

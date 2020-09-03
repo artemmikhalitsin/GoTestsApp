@@ -142,7 +142,6 @@ func TestGame(t *testing.T) {
 		//Send winner
 		writeWSMessage(t, ws, winner)
 
-		time.Sleep(10 * time.Millisecond)
 		assertStartedWith(t, game, 3)
 		assertFinishedWith(t, game, winner)
 
@@ -266,4 +265,16 @@ func within(t *testing.T, d time.Duration, assert func()) {
 		t.Error("Function timed out")
 	case <-done:
 	}
+}
+
+func retryUntil(d time.Duration, f func() bool) bool {
+	deadline := time.Now().Add(d)
+
+	for time.Now().Before(deadline) {
+		if f() {
+			return true
+		}
+	}
+
+	return false
 }
