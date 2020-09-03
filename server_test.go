@@ -14,7 +14,7 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-var dummyGame = &SpyGame{}
+var dummyGame = &GameSpy{}
 
 func TestGETPlayers(t *testing.T) {
 	store := poker.StubPlayerStore{
@@ -130,7 +130,8 @@ func TestGame(t *testing.T) {
 
 	t.Run("when we get a message over a websocket, it's the winner", func(t *testing.T) {
 		winner := "Wario"
-		game := &SpyGame{}
+		wantedBlindAlert := "Blind is 100"
+		game := &GameSpy{BlindAlert: []byte(wantedBlindAlert)}
 		server := httptest.NewServer(makePlayerServer(t, dummyPlayerStore, game))
 		ws := dialWS(t, "ws"+strings.TrimPrefix(server.URL, "http")+"/ws")
 		defer server.Close()
@@ -144,6 +145,8 @@ func TestGame(t *testing.T) {
 		time.Sleep(10 * time.Millisecond)
 		assertStartedWith(t, game, 3)
 		assertFinishedWith(t, game, winner)
+
+		within(t, 1*time.Second, func() { assertWebsocketGotMessage(t, ws, wantedBlindAlert) })
 	})
 }
 
@@ -210,6 +213,13 @@ func assertPlayerWin(t *testing.T, got, want string) {
 	}
 }
 
+func assertWebsocketGotMessage(t *testing.T, ws *websocket.Conn, want string) {
+	_, got, _ := ws.ReadMessage()
+	if string(got) != want {
+		t.Errorf("Expected blind alert %q, but got %q", want, string(got))
+	}
+}
+
 func getLeagueFromResponse(t *testing.T, body io.Reader) (league poker.League) {
 	t.Helper()
 	league, _ = poker.NewLeague(body)
@@ -238,5 +248,22 @@ func writeWSMessage(t *testing.T, ws *websocket.Conn, message string) {
 	t.Helper()
 	if err := ws.WriteMessage(websocket.TextMessage, []byte(message)); err != nil {
 		t.Fatalf("Unable to write message %s over the ws connection: %v", message, err)
+	}
+}
+
+func within(t *testing.T, d time.Duration, assert func()) {
+	t.Helper()
+
+	done := make(chan struct{}, 1)
+
+	go func() {
+		assert()
+		done <- struct{}{}
+	}()
+
+	select {
+	case <-time.After(d):
+		t.Error("Function timed out")
+	case <-done:
 	}
 }

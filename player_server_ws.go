@@ -35,3 +35,14 @@ func (w *playerServerWS) WaitForMsg() string {
 
 	return string(msg)
 }
+
+func (w *playerServerWS) Write(msg []byte) (int, error) {
+	err := w.Conn.WriteMessage(websocket.TextMessage, msg)
+
+	if err != nil {
+		log.Printf("Error writing message to websocket: %v", err)
+		return 0, err
+	}
+
+	return len(msg), nil
+}
