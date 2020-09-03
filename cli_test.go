@@ -62,7 +62,7 @@ type SpyGame struct {
 	FinishCalled bool
 }
 
-func (s *SpyGame) Start(numPlayers int) {
+func (s *SpyGame) Start(numPlayers int, alertsDestination io.Writer) {
 	s.StartedWith = numPlayers
 	s.StartCalled = true
 }
