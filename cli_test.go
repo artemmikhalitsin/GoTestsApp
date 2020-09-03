@@ -5,6 +5,7 @@ import (
 	"io"
 	"strings"
 	"testing"
+	"time"
 
 	poker "github.com/artemmikhalitsin/GoTestsApp"
 )
@@ -20,7 +21,7 @@ func TestCLI(t *testing.T) {
 		winner := "Mario"
 		in := userSends("3", "Mario wins")
 		stdout := &bytes.Buffer{}
-		game := &SpyGame{}
+		game := &GameSpy{}
 		cli := poker.NewCLI(in, stdout, game)
 		cli.PlayPoker()
 
@@ -32,7 +33,7 @@ func TestCLI(t *testing.T) {
 	t.Run("It doesn't start the game when given non-numerical input", func(t *testing.T) {
 		stdout := &bytes.Buffer{}
 		stdin := userSends("Wrong Input")
-		game := &SpyGame{}
+		game := &GameSpy{}
 		cli := poker.NewCLI(stdin, stdout, game)
 		cli.PlayPoker()
 
@@ -43,7 +44,7 @@ func TestCLI(t *testing.T) {
 	t.Run("It rejects messages that don't contain a win", func(t *testing.T) {
 		stdout := &bytes.Buffer{}
 		stdin := userSends("3", "Gibberish winner message")
-		game := &SpyGame{}
+		game := &GameSpy{}
 		cli := poker.NewCLI(stdin, stdout, game)
 		cli.PlayPoker()
 
@@ -55,21 +56,23 @@ func TestCLI(t *testing.T) {
 	})
 }
 
-type SpyGame struct {
+type GameSpy struct {
 	StartedWith  int
 	StartCalled  bool
+	BlindAlert   []byte
 	FinishedWith string
 	FinishCalled bool
 }
 
-func (s *SpyGame) Start(numPlayers int) {
-	s.StartedWith = numPlayers
-	s.StartCalled = true
+func (g *GameSpy) Start(numPlayers int, alertsDestination io.Writer) {
+	g.StartedWith = numPlayers
+	g.StartCalled = true
+	alertsDestination.Write(g.BlindAlert)
 }
 
-func (s *SpyGame) Finish(winner string) {
-	s.FinishedWith = winner
-	s.FinishCalled = true
+func (g *GameSpy) Finish(winner string) {
+	g.FinishedWith = winner
+	g.FinishCalled = true
 }
 
 func assertScheduledAlert(t *testing.T, got, want scheduledAlert) {
@@ -101,23 +104,31 @@ func assertMessagesSentToUser(t *testing.T, stdout *bytes.Buffer, messages ...st
 	}
 }
 
-func assertStartedWith(t *testing.T, game *SpyGame, want int) {
+func assertStartedWith(t *testing.T, game *GameSpy, want int) {
 	t.Helper()
 
-	if game.StartedWith != want {
+	passed := retryUntil(500*time.Millisecond, func() bool {
+		return game.StartedWith == want
+	})
+
+	if !passed {
 		t.Errorf("Started the game with %d players, but got %d", game.StartedWith, want)
 	}
 }
 
-func assertFinishedWith(t *testing.T, game *SpyGame, want string) {
+func assertFinishedWith(t *testing.T, game *GameSpy, want string) {
 	t.Helper()
 
-	if game.FinishedWith != want {
+	passed := retryUntil(500*time.Millisecond, func() bool {
+		return game.FinishedWith == want
+	})
+
+	if !passed {
 		t.Errorf("Got winner %q, but expected %q to win", game.FinishedWith, want)
 	}
 }
 
-func assertGameNotStarted(t *testing.T, game *SpyGame) {
+func assertGameNotStarted(t *testing.T, game *GameSpy) {
 	t.Helper()
 
 	if game.StartCalled {
